@@ -1,0 +1,17 @@
+[package]
+name = "dx11-bug-repro"
+version = "0.1.0"
+authors = ["Connor Fitzgerald <connorwadefitzgerald@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bytemuck = "1"
+pollster = "0.2.0"
+wgpu = "0.6"
+wgpu-subscriber = "0.1"
+
+[patch.crates-io]
+gfx-hal = { path = "../gfx/src/hal" }
+gfx-backend-dx11 = { path = "../gfx/src/backend/dx11" }
