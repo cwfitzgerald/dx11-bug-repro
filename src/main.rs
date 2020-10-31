@@ -1,45 +1,18 @@
 use pollster::block_on;
 use std::ptr;
-use wgpu::util::{BufferInitDescriptor, DeviceExt};
 use wgpu::*;
-
-#[derive(Copy, Clone)]
-struct DrawIndirect {
-    vertex_count: u32, // The number of vertices to draw.
-    instance_count: u32, // The number of instances to draw.
-    base_vertex: u32, // The Index of the first vertex to draw.
-    base_instance: u32, // The instance ID of the first instance to draw.
-}
-
-unsafe impl bytemuck::Zeroable for DrawIndirect {}
-unsafe impl bytemuck::Pod for DrawIndirect {}
 
 fn main() {
     let mut rd = renderdoc::RenderDoc::<renderdoc::V141>::new().ok();
 
     wgpu_subscriber::initialize_default_subscriber(None);
 
-    let instance = Instance::new(BackendBit::DX12 | BackendBit::SECONDARY);
-
-    let adapters = instance.enumerate_adapters(BackendBit::PRIMARY | BackendBit::SECONDARY);
-
-    for adapter in adapters {
-        dbg!(adapter.get_info());
-    }
+    let instance = Instance::new(BackendBit::DX12);
 
     let adapter = block_on(instance.request_adapter(&RequestAdapterOptions::default())).unwrap();
 
-    dbg!(adapter.limits(), adapter.features());
-
     let (device, queue) =
-        block_on(adapter.request_device(&DeviceDescriptor {
-            features: Features::PUSH_CONSTANTS,
-            limits: Limits {
-                max_push_constant_size: 256,
-                ..Limits::default()
-            },
-            shader_validation: true
-        }, None)).unwrap();
+        block_on(adapter.request_device(&DeviceDescriptor::default(), None)).unwrap();
 
     if let Some(ref mut rd) = rd {
         rd.start_frame_capture(ptr::null(), ptr::null());
@@ -109,10 +82,7 @@ fn main() {
     let pll = device.create_pipeline_layout(&PipelineLayoutDescriptor {
         label: Some("pipeline layout"),
         bind_group_layouts: &[&bgl],
-        push_constant_ranges: &[PushConstantRange {
-            stages: ShaderStage::FRAGMENT,
-            range: 0..4
-        }],
+        push_constant_ranges: &[],
     });
 
     let pl = device.create_render_pipeline(&RenderPipelineDescriptor {
@@ -165,19 +135,6 @@ fn main() {
         label: Some("encoder"),
     });
 
-    let indirect = DrawIndirect {
-        vertex_count: 3,
-        base_instance: 0,
-        base_vertex: 0,
-        instance_count: 1,
-    };
-
-    let indirect = device.create_buffer_init(&BufferInitDescriptor {
-        usage: BufferUsage::INDIRECT,
-        label: Some("indirect"),
-        contents: bytemuck::bytes_of(&indirect),
-    });
-
     let mut rpass = encoder.begin_render_pass(&RenderPassDescriptor {
         color_attachments: &[RenderPassColorAttachmentDescriptor {
             attachment: &render_texture_view,
@@ -191,9 +148,8 @@ fn main() {
     });
 
     rpass.set_pipeline(&pl);
-    rpass.set_push_constants(ShaderStage::FRAGMENT, 0, bytemuck::bytes_of(&0.5_f32));
     rpass.set_bind_group(0, &bg1, &[]);
-    rpass.draw_indirect(&indirect, 0);
+    rpass.draw(0..3, 0..1);
 
     drop(rpass);
 

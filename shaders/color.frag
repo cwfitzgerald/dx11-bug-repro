@@ -6,11 +6,7 @@ layout(location = 0) out vec4 color;
 
 layout(set = 0, binding = 0, rgba8) readonly uniform image2D image;
 
-layout(push_constant) uniform H {
-    float blu;
-};
-
 void main() {
     vec2 img_color = imageLoad(image, ivec2(0, 0)).rg;
-    color = vec4(tex_coords.x > img_color.r ? 1.0 : 0.0, img_color.g > tex_coords.y ? 1.0 : 0.0, blu, 1.0);
+    color = vec4(tex_coords.x > img_color.r ? 1.0 : 0.0, img_color.g > tex_coords.y ? 1.0 : 0.0, 0.0, 1.0);
 }
